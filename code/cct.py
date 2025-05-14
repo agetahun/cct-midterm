@@ -3,8 +3,6 @@ import pymc as pm
 import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
-from pathlib import Path
-import sys
 
 
 # Part 1:
@@ -66,6 +64,10 @@ def analyze_results(trace):
 
     print("\nModel summary for consensus answers (Z):")
     print(az.summary(trace, var_names=["Z"]))
+
+    summary = az.summary(trace, var_names=["D", "Z"])
+    print("\nR-hat values for convergence diagnostic:")
+    print(summary[["r_hat"]])
 
     # Plot posterior distributions for competence
     az.plot_posterior(trace, var_names=["D"])
