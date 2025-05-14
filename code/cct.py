@@ -6,11 +6,11 @@ import numpy as np
 
 
 # Part 1:
-#   Load the "plant knowledgeLinks to an external site." dataset. 
+#   Load the "plant knowledge" dataset.
 #   Represent it appropriately (e.g., as a NumPy array or Pandas DataFrame, excluding the Informant ID column).
 
 def load_data():
-    """custom function that loads the datsa and returns it"""
+    """loads the data and returns it"""
     # chatGBT was used to help write the following code to read and return the data within the csv file
     DATA_URL = "https://raw.githubusercontent.com/joachimvandekerckhove/cogs107s25/refs/heads/main/1-mpt/data/plant_knowledge.csv"
     df = pd.read_csv(DATA_URL, sep=',', skipinitialspace=True, header=0, engine='python')
@@ -22,7 +22,6 @@ def load_data():
 #   Implement the Model in PyMC
 
 #   For each informant's competence Di, choose a suitable prior distribution.
-#   Make sure to justify your choice in the report!!
 
 #   Parameters:
 #     N: number of informants.
@@ -32,14 +31,16 @@ def load_data():
 #     Di: latent "competence" of informant i (probability of knowing the correct answer), where 0.5 ≤ Di ≤ 1.
 
 def fit_model(data):
+    """fits the CCT model and returns the trace"""
     with pm.Model() as model:
         rows,cols = data.shape
         # the above ".shape" method and the "shape" parameter below were found using chatGBT
         
         # Define Priors:
         D = pm.Uniform("D", 0.5, 1, shape = rows)
-        # chose a uniform prior distribution because we don't know anything about their knowledge and how competent each informant will be. all we know is that their probability ahs to be between 0.5(completely guessing) or 1(always knowing the correct answer)
+        # I chose a uniform prior distribution because we don't know anything about their knowledge and how competent each informant will be. All we know is that their probability has to be between 0.5(completely guessing) or 1(always knowing the correct answer).
         Z = pm.Bernoulli("Z", p=0.5, shape = cols)
+        # Bernoulli distribution is appropriate since it's a binary value (0 or 1)
 
         # Define the probability pij using the given formula:
         # (first reshape or broadcast D and Z appropriately to calculate p for all i and j.)
@@ -59,6 +60,7 @@ def fit_model(data):
 #   the following three functions were written and debugged using chatGBT
 
 def analyze_results(trace):
+    """analyzes the data and prints the model summaries. plots posterior distirbutions"""
     print("\nModel summary for competence (D):")
     print(az.summary(trace, var_names=["D"]))
 
@@ -80,15 +82,12 @@ def analyze_results(trace):
     plt.show()
 
 def compute_majority_vote(data):
-    """
-    Compute majority vote answer for each question (column).
-    """
+    """computes majority vote answer for each question"""
+    # this is the calulation for the "Naive Aggregation"
     return (np.mean(data, axis=0) > 0.5).astype(int)
 
 def compare_with_majority(data, trace):
-    """
-    Compare model-estimated consensus answers with majority vote answers.
-    """
+    """compares model-estimated consensus answers with the majority vote answers"""
     posterior_Z = trace.posterior["Z"].mean(dim=("chain", "draw")).values
     consensus_from_model = (posterior_Z > 0.5).astype(int)
     majority_vote = compute_majority_vote(data)
